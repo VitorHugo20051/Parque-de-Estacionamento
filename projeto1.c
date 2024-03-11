@@ -33,17 +33,48 @@ void quit_program() {
     exit(0);
 }
 
-void create_park(char *name, int capacity, float X, float Y,  float Z) {
-    Parking park;
-    park.name = name;
-    park.capacity = capacity;
-    park.costX = X;
-    park.costY = Y;
-    park.costZ = Z;
+void create_park(Parking *parks, int *num_parks, char *name, int capacity, float X, float Y,  float Z) {
+    if (*num_parks > MAX_PARKS) {
+        printf("too many parks.\n");
+        return;
+    }
+
+    for (int i = 0; i < *num_parks; i++) {
+        if (strcomp(parks[i].name, name)) {
+            printf("parking already exists.\n");
+            return;
+        }
+    }
+    
+    if (capacity < 0) {
+        printf("invalid capacity.\n");
+        return;
+    }
+
+    if (X < 0 || Y < 0 || Z < 0 || !(X > Y && Y > Z)) {
+        printf("invalid cost.\n");
+        return;
+    }
+
+    parks[*num_parks].name = name;
+    parks[*num_parks].capacity = capacity;
+    parks[*num_parks].costX = X;
+    parks[*num_parks].costY = Y;
+    parks[*num_parks].costZ = Z;
+    parks[*num_parks].num_records = 0;
+
+    (*num_parks)++;
+
+    for (int i = 0; i < *num_parks; i++) {
+        printf("%s %d %f %f %f\n", parks[i].name, parks[i].capacity, parks[i].costX, parks[i].costY, parks[i].costZ);
+    }
 }
 
 int main() {
+    Parking parks[MAX_PARKS];
+    int num_parks = 0;
     char comand;
+
     scanf("%s", &comand);
     while (1) {
         scanf("%s", &comand);
@@ -51,7 +82,7 @@ int main() {
             case 'q':
                 quit_program();
             case 'p':
-                char *name = malloc(sizeof(BUFSIZ));
+                char *name = malloc(BUFSIZ);
                 int capacity;
                 float X, Y, Z;
                 scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z);
