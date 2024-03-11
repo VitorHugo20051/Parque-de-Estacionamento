@@ -77,7 +77,6 @@ int main() {
 
     scanf("%s", &comand);
     while (1) {
-        scanf("%s", &comand);
         switch (comand) {
             case 'q':
                 quit_program();
@@ -87,7 +86,9 @@ int main() {
                 float X, Y, Z;
                 scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z);
                 create_park(name, capacity, X, Y, Z);
+                break;
         }
+        scanf("%s", &comand);
     }
     return 0;
 }
