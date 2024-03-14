@@ -1,0 +1,31 @@
+#ifndef _FUNCTIONS_
+#define _FUNCTIONS_
+
+#define MAX_PARKS 20
+#define MAX_PLATE_NAME 10
+#define MAX_DATE_LENGTH 11
+#define MAX_TIME_LENGTH 6
+#define BUFSIZ 8192
+
+typedef struct {
+    char plate[MAX_PLATE_NAME];
+    char entry_date[MAX_DATE_LENGTH];
+    char entry_time[MAX_TIME_LENGTH];
+    char exit_date[MAX_DATE_LENGTH];
+    char exit_time[MAX_TIME_LENGTH];
+    float bill;
+} VeichleRecord;
+
+typedef struct {
+    char *name;
+    int capacity;
+    int available_spots;
+    float costX;
+    float costY;
+    float costZ;
+    VeichleRecord records[MAX_PARKS];
+    int num_records;
+} Parking;
+
+void quit_program();
+void create_park();
