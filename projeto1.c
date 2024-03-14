@@ -34,39 +34,51 @@ void quit_program() {
 }
 
 void create_park(Parking *parks, int *num_parks, char *name, int capacity, float X, float Y,  float Z) {
-    if (*num_parks > MAX_PARKS) {
+    if (*num_parks >= MAX_PARKS) {
         printf("too many parks.\n");
         return;
     }
 
-    for (int i = 0; i < *num_parks; i++) {
-        if (strcomp(parks[i].name, name)) {
-            printf("parking already exists.\n");
-            return;
+    if (name != NULL) { 
+        for (int i = 0; i < *num_parks; i++) {
+            if (strcmp(parks[i].name, name) == 0) {
+                printf("%s: parking already exists.\n", name);
+                return;
+            }
         }
     }
-    
+
     if (capacity < 0) {
-        printf("invalid capacity.\n");
+        printf("%d: invalid capacity.\n", capacity);
         return;
     }
 
-    if (X < 0 || Y < 0 || Z < 0 || !(X > Y && Y > Z)) {
+    if (X < 0 || Y < 0 || Z < 0 || (X > Y && Y > Z)) {
         printf("invalid cost.\n");
         return;
     }
 
-    parks[*num_parks].name = name;
-    parks[*num_parks].capacity = capacity;
-    parks[*num_parks].costX = X;
-    parks[*num_parks].costY = Y;
-    parks[*num_parks].costZ = Z;
-    parks[*num_parks].num_records = 0;
+    if (name != NULL) {
+        parks[*num_parks].name = strdup(name);
+        parks[*num_parks].capacity = capacity;
+        parks[*num_parks].costX = X;
+        parks[*num_parks].costY = Y;
+        parks[*num_parks].costZ = Z;
+        parks[*num_parks].num_records = 0;
 
-    (*num_parks)++;
+        (*num_parks)++;
+    } 
+    else {
+        for (int i = 0; i < *num_parks; i++) {
+            printf("%s %d %f %f %f", parks[i].name, parks[i].capacity, parks[i].costX, parks[i].costY, parks[i].costZ);
+        }
 
-    for (int i = 0; i < *num_parks; i++) {
-        printf("%s %d %f %f %f\n", parks[i].name, parks[i].capacity, parks[i].costX, parks[i].costY, parks[i].costZ);
+        printf("\n");
+
+        for (int i = 0; i < *num_parks; i++) {
+            free(parks[i].name);
+        }
+        return;
     }
 }
 
@@ -81,11 +93,15 @@ int main() {
             case 'q':
                 quit_program();
             case 'p':
-                char *name = malloc(BUFSIZ);
+                char *name = (char*)malloc(BUFSIZ * sizeof(char));
                 int capacity;
                 float X, Y, Z;
-                scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z);
-                create_park(name, capacity, X, Y, Z);
+                if (scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z) != 1){
+                    create_park(parks, &num_parks, NULL, 0, 0, 0, 0);
+                }
+                else {
+                    create_park(parks, &num_parks, name, capacity, X, Y, Z);
+                }
                 break;
         }
         scanf("%s", &comand);
