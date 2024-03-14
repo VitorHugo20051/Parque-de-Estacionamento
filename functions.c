@@ -33,10 +33,10 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
         return;
     }
 
-    parks[*num_parks].name = malloc(strlen(name) + 1);
-    if (name != NULL) {
+    if (name != NULL && capacity != 0 && X != 0 && Y != 0 && Z != 0) {
         parks[*num_parks].name = strdup(name);
         parks[*num_parks].capacity = capacity;
+        parks[*num_parks].available_spots = capacity;
         parks[*num_parks].costX = X;
         parks[*num_parks].costY = Y;
         parks[*num_parks].costZ = Z;
@@ -46,14 +46,9 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
     } 
     else {
         for (int i = 0; i < *num_parks; i++) {
-            printf("%s %d %f %f %f", parks[i].name, parks[i].capacity, parks[i].costX, parks[i].costY, parks[i].costZ);
+            int occupied_spots = parks[i].num_records;
+            int available_spots = parks[i].capacity - occupied_spots;
+            printf("%s %d %d", parks[i].name, parks[i].capacity, available_spots);
         }
-
-        printf("\n");
-
-        for (int i = 0; i < *num_parks; i++) {
-            free(parks[i].name);
-        }
-        return;
     }
 }
