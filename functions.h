@@ -5,7 +5,7 @@
 #define MAX_PLATE_NAME 10
 #define MAX_DATE_LENGTH 11
 #define MAX_TIME_LENGTH 6
-#define BUFSIZ 8192
+#define MY_BUFSIZ 8192
 
 typedef struct {
     char plate[MAX_PLATE_NAME];
@@ -28,4 +28,6 @@ typedef struct {
 } Parking;
 
 void quit_program();
-void create_park();
+void create_park(Parking *parks, int *num_parks, char *name, int capacity, float X, float Y,  float Z);
+
+#endif

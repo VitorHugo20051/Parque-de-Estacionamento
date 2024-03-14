@@ -7,6 +7,9 @@
 int main() {
     Parking parks[MAX_PARKS];
     int num_parks = 0;
+     char *name = (char*)malloc(BUFSIZ * sizeof(char));
+    int capacity;
+    float X, Y, Z;
     char comand;
 
     scanf("%s", &comand);
@@ -15,9 +18,6 @@ int main() {
             case 'q':
                 quit_program();
             case 'p':
-                char *name = (char*)malloc(BUFSIZ * sizeof(char));
-                int capacity;
-                float X, Y, Z;
                 if (scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z) != 1){
                     create_park(parks, &num_parks, NULL, 0, 0, 0, 0);
                 }
@@ -28,5 +28,6 @@ int main() {
         }
         scanf("%s", &comand);
     }
+    free(name);
     return 0;
 }

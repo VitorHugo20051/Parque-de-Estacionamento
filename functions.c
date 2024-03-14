@@ -33,6 +33,7 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
         return;
     }
 
+    parks[*num_parks].name = malloc(strlen(name) + 1);
     if (name != NULL) {
         parks[*num_parks].name = strdup(name);
         parks[*num_parks].capacity = capacity;
