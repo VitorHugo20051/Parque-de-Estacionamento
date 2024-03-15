@@ -92,6 +92,7 @@ int main() {
         switch (comand) {
             case 'q':
                 quit_program();
+                break;
             case 'p':
                 if (getchar() == ' ') {
                     arguments = scanf(" \"%[^\"]\" %d %f %f %f", name, &capacity, &X, &Y, &Z);
