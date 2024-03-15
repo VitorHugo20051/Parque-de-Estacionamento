@@ -39,7 +39,7 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
         return;
     }
 
-    if (name != NULL) { 
+    if (name != NULL) {
         for (int i = 0; i < *num_parks; i++) {
             if (strcmp(parks[i].name, name) == 0) {
                 printf("%s: parking already exists.\n", name);
@@ -68,12 +68,12 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
         parks[*num_parks].num_records = 0;
 
         (*num_parks)++;
-    } 
+    }
     else {
         for (int i = 0; i < *num_parks; i++) {
             int occupied_spots = parks[i].num_records;
             int available_spots = parks[i].capacity - occupied_spots;
-            printf("%s %d %d", parks[i].name, parks[i].capacity, available_spots);
+            printf("%s %d %d\n", parks[i].name, parks[i].capacity, available_spots);
         }
     }
 }
@@ -82,7 +82,7 @@ int main() {
     Parking parks[MAX_PARKS];
     int num_parks = 0;
     char *name = (char*)malloc(MY_BUFSIZ * sizeof(char));
-    int capacity;
+    int capacity, arguments;
     float X, Y, Z;
     char comand;
 
@@ -93,11 +93,18 @@ int main() {
             case 'q':
                 quit_program();
             case 'p':
-                if (scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z) != 5) {
-                    create_park(parks, &num_parks, NULL, 0, 0, 0, 0);
-                }
+                if (getchar() == ' ') {
+                    arguments = scanf(" \"%[^\"]\" %d %f %f %f", name, &capacity, &X, &Y, &Z);
+                    if (arguments == 5) {
+                        create_park(parks, &num_parks, name, capacity, X, Y, Z);
+                    }
+                    else {
+                        scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z);
+                        create_park(parks, &num_parks, name, capacity, X, Y, Z);
+                    }
+                }    
                 else {
-                    create_park(parks, &num_parks, name, capacity, X, Y, Z);
+                    create_park(parks, &num_parks, NULL, 0, 0, 0, 0);
                 }
                 break;
         }
