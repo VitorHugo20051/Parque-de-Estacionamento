@@ -78,6 +78,91 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
     }
 }
 
+int is_valid_date(const char *date) {
+    int day, month, year;
+    if (sscanf(date, "-%d-%d-%d", &day, &month, &year) != 3) {
+        return 0;
+    }
+
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
+        return 0;
+    }
+    return 1;
+}
+
+int is_valid_time(const *time) {
+    int hour, minute;
+    if (sscanf(time, "%d:%d", %hour, %minute) != 2) {
+        return 0;
+    }
+
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+        return 0;
+    }
+    return 1;
+}
+
+int is_valid_plate(const char *plate) {
+    int len = strlen(plate);
+
+    if (len != 8) {
+        return 0;
+    }
+
+    if (!isupper(plate[0]) || !isupper(plate[1]) || plate[2] != '-' ||
+        !isdigit(plate[3]) || !isdigit(plate[4]) || plate[5] != '-' ||
+        !isupper(plate[6]) || !isupper(plate[7])) {
+            return 0;
+    }
+    return 1;
+}
+
+void veichle_entry(Parking *parks, int num_parks, const char *park_name, const char *plate, const char *date, const char *time) {
+    int park_index = -1, i;
+    
+    for (i = 0; i < num_parks; i++) {
+        if (strcmp(parks[i].name, park_name) == 0) {
+            park_index = i;
+            break;
+        }
+    }
+
+    if (park_index == -1) {
+        printf("%s: no such parking.", park_name);
+        return;
+    }
+
+    if (parks[park_index].available_spots == 0) {
+        printf("%s: parking is full.", park_name);
+        return;
+    }
+
+    if (!is_valid_plate(plate)) {
+        printf("%s: invalid license plate.", plate);
+        return;
+    }
+
+    for (i = 0; i < parks[park_index].num_records; i++) {
+        if (strcmp(parks[park_index].records[i], plate) == 0) {
+            printf("%s: invalid veichle entry.", plate);
+            break;
+        }
+    }
+
+    if (!is_valid_time(time) || !is_valid_date(date)) {
+        printf("invalid date.");
+        return;
+    }
+
+    strcpy(parks[park_index].records[parks[park_index].num_records].plate, plate);
+    strcpy(parks[park_index].records[parks[park_index].num_records].entry_date, date);
+    strcpy(parks[park_index].records[parks[park_index].num_records].entry_time, time);
+    parks[park_index].num_records++;
+    parks[park_index].available_spots--;
+
+    printf("%s %d", park_name, parks[park_index].available_spots);
+}
+
 int main() {
     Parking parks[MAX_PARKS];
     int num_parks = 0;
@@ -107,6 +192,10 @@ int main() {
                 else {
                     create_park(parks, &num_parks, NULL, 0, 0, 0, 0);
                 }
+                break;
+            case 'e':
+                scanf("%s %s %s %s", park_name, plate, date, time);
+                veichle_entry(parks, num_parks, park_name, plate, date, time);
                 break;
         }
     }
