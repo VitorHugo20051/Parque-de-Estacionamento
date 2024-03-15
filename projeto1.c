@@ -80,7 +80,7 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
 
 int is_valid_date(const char *date) {
     int day, month, year;
-    if (sscanf(date, "-%d-%d-%d", &day, &month, &year) != 3) {
+    if (sscanf(date, "%d-%d-%d", &day, &month, &year) != 3) {
         return 0;
     }
 
@@ -90,9 +90,9 @@ int is_valid_date(const char *date) {
     return 1;
 }
 
-int is_valid_time(const *time) {
+int is_valid_time(const char *time) {
     int hour, minute;
-    if (sscanf(time, "%d:%d", %hour, %minute) != 2) {
+    if (sscanf(time, "%d:%d", &hour, &minute) != 2) {
         return 0;
     }
 
@@ -128,29 +128,29 @@ void veichle_entry(Parking *parks, int num_parks, const char *park_name, const c
     }
 
     if (park_index == -1) {
-        printf("%s: no such parking.", park_name);
+        printf("%s: no such parking.\n", park_name);
         return;
     }
 
     if (parks[park_index].available_spots == 0) {
-        printf("%s: parking is full.", park_name);
+        printf("%s: parking is full.\n", park_name);
         return;
     }
 
     if (!is_valid_plate(plate)) {
-        printf("%s: invalid license plate.", plate);
+        printf("%s: invalid license plate.\n", plate);
         return;
     }
 
     for (i = 0; i < parks[park_index].num_records; i++) {
-        if (strcmp(parks[park_index].records[i], plate) == 0) {
-            printf("%s: invalid veichle entry.", plate);
+        if (strcmp(parks[park_index].records[i].plate, plate) == 0) {
+            printf("%s: invalid veichle entry.\n", plate);
             break;
         }
     }
 
     if (!is_valid_time(time) || !is_valid_date(date)) {
-        printf("invalid date.");
+        printf("invalid date.\n");
         return;
     }
 
@@ -160,16 +160,15 @@ void veichle_entry(Parking *parks, int num_parks, const char *park_name, const c
     parks[park_index].num_records++;
     parks[park_index].available_spots--;
 
-    printf("%s %d", park_name, parks[park_index].available_spots);
+    printf("%s %d\n", park_name, parks[park_index].available_spots);
 }
 
 int main() {
     Parking parks[MAX_PARKS];
-    int num_parks = 0;
+    int num_parks = 0, capacity, arguments;
     char *name = (char*)malloc(MY_BUFSIZ * sizeof(char));
-    int capacity, arguments;
     float X, Y, Z;
-    char comand;
+    char comand, park_name[MY_BUFSIZ], plate[MAX_PLATE_NAME], date[MAX_DATE_LENGTH], time[MAX_TIME_LENGTH];
 
     while (1) {
         comand = getchar();
