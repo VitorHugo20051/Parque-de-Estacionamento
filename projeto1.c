@@ -163,6 +163,44 @@ void veichle_entry(Parking *parks, int num_parks, const char *park_name, const c
     printf("%s %d\n", park_name, parks[park_index].available_spots);
 }
 
+void veichle_exit(Parking *parks, int num_parks, const char *park_name, const char *plate, const char *date, const char *time) {
+    int park_index = -1, veichle_index = -1, i;
+
+    for (i = 0; i < num_parks; i++) {
+        if (strcmp(parks[i].name, park_name) == 0) {
+            park_index = i;
+            break;
+        }
+    }
+
+    if (park_index == -1) {
+        printf("%s: no such parking.\n", park_name);
+        return;
+    }
+
+    if (!is_valid_plate(plate)) {
+        printf("%s: invalid license plate.\n", plate);
+        return;
+    }
+
+    for (i = 0; i < parks[park_index].num_records; i++) {
+        if (strcmp(parks[park_index].records[i].plate, plate) == 0) {
+            veichle_index = i;
+            break;
+        }
+    }
+
+    if (veichle_index == -1) {
+        printf("%s: invalid veichle exit.\n", plate);
+        return;
+    }
+
+    if (!is_valid_date(date) || !is_valid_time(time)) {
+        printf("invalid date\n");
+        return;
+    }
+}
+
 int main() {
     Parking parks[MAX_PARKS];
     int num_parks = 0, capacity, arguments;
