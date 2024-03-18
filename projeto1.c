@@ -149,6 +149,14 @@ void veichle_entry(Parking *parks, int num_parks, const char *park_name, const c
         }
     }
 
+    for (i = 0; i < parks[park_index].num_records; i++) {
+        if (strcmp(parks[park_index].records[i].entry_date, date) == 0 &&
+            strcmp(parks[park_index].records[i].entry_time, time) == 0) {
+            printf("invalid date\n");
+            return;
+        }
+    }
+
     if (!is_valid_time(time) || !is_valid_date(date)) {
         printf("invalid date.\n");
         return;
