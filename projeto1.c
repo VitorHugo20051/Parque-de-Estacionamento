@@ -231,7 +231,7 @@ int main() {
                 }
                 break;
             case 'e':
-                scanf("%s %s %s %s", park_name, plate, date, time);
+                scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
                 veichle_entry(parks, num_parks, park_name, plate, date, time);
                 break;
         }
