@@ -240,9 +240,7 @@ int main() {
                 break;
             case 'e':
                 if (getchar() == ' ') {
-                    scanf("%s", park_name);
-                    scanf(" %8s", plate);
-                    scanf(" %s %s", date, time);
+                    scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
                     veichle_entry(parks, &num_parks, park_name, plate, date, time);
                 }
                 free(park_name);
