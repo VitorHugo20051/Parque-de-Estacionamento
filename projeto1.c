@@ -4,7 +4,7 @@
 #include <ctype.h>
 
 #define MAX_PARKS 20
-#define MAX_PLATE 8
+#define MAX_PLATE 9
 #define MAX_DATE_LENGTH 11
 #define MAX_TIME_LENGTH 6
 #define MY_BUFSIZ 8192
@@ -212,9 +212,9 @@ void veichle_exit(Parking *parks, int *num_parks, const char *park_name, const c
 int main() {
     Parking parks[MAX_PARKS];
     int num_parks = 0, capacity, arguments;
-    char *name = (char*)malloc(MY_BUFSIZ * sizeof(char));
+    char *name = (char*)malloc(MY_BUFSIZ * sizeof(char)), *park_name = (char*)malloc(MY_BUFSIZ * sizeof(char));
     float X, Y, Z;
-    char comand, park_name[MY_BUFSIZ], plate[MAX_PLATE], date[MAX_DATE_LENGTH], time[MAX_TIME_LENGTH];
+    char comand, plate[MAX_PLATE], date[MAX_DATE_LENGTH], time[MAX_TIME_LENGTH];
 
     while (1) {
         comand = getchar();
@@ -239,8 +239,13 @@ int main() {
                 }
                 break;
             case 'e':
-                scanf("%s %s %s %s", park_name, plate, date, time);
-                veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                if (getchar() == ' ') {
+                    scanf("%s", park_name);
+                    scanf(" %8s", plate);
+                    scanf(" %s %s", date, time);
+                    veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                }
+                free(park_name);
                 break;
         }
     }
