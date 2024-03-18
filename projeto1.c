@@ -4,13 +4,13 @@
 #include <ctype.h>
 
 #define MAX_PARKS 20
-#define MAX_PLATE_NAME 10
+#define MAX_PLATE 8
 #define MAX_DATE_LENGTH 11
 #define MAX_TIME_LENGTH 6
 #define MY_BUFSIZ 8192
 
 typedef struct {
-    char plate[MAX_PLATE_NAME];
+    char plate[MAX_PLATE];
     char entry_date[MAX_DATE_LENGTH];
     char entry_time[MAX_TIME_LENGTH];
     char exit_date[MAX_DATE_LENGTH];
@@ -117,11 +117,17 @@ int is_valid_plate(const char *plate) {
     return 1;
 }
 
-void veichle_entry(Parking *parks, int num_parks, const char *park_name, const char *plate, const char *date, const char *time) {
-    int park_index = -1, i;
+void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate, char *date, char *time) {
+    int park_index = -1, i, park_name_len = strlen(park_name);
+
+    if (park_name_len > 0 && park_name[0] == '"') {
+        memmove(park_name, park_name + 1, park_name_len - 2);
+        park_name[park_name_len - 2] = '\0';
+        park_name_len -= 2;
+    }
     
-    for (i = 0; i < num_parks; i++) {
-        if (strcmp(parks[i].name, park_name) == 0) {
+    for (i = 0; i < *num_parks; i++) {
+        if (strcasecmp(parks[i].name, park_name) == 0) {
             park_index = i;
             break;
         }
@@ -171,10 +177,10 @@ void veichle_entry(Parking *parks, int num_parks, const char *park_name, const c
     printf("%s %d\n", park_name, parks[park_index].available_spots);
 }
 
-void veichle_exit(Parking *parks, int num_parks, const char *park_name, const char *plate, const char *date, const char *time) {
+void veichle_exit(Parking *parks, int *num_parks, const char *park_name, const char *plate, const char *date, const char *time) {
     int park_index = -1, veichle_index = -1, i;
 
-    for (i = 0; i < num_parks; i++) {
+    for (i = 0; i < *num_parks; i++) {
         if (strcmp(parks[i].name, park_name) == 0) {
             park_index = i;
             break;
@@ -214,7 +220,7 @@ int main() {
     int num_parks = 0, capacity, arguments;
     char *name = (char*)malloc(MY_BUFSIZ * sizeof(char));
     float X, Y, Z;
-    char comand, park_name[MY_BUFSIZ], plate[MAX_PLATE_NAME], date[MAX_DATE_LENGTH], time[MAX_TIME_LENGTH];
+    char comand, park_name[MY_BUFSIZ], plate[MAX_PLATE], date[MAX_DATE_LENGTH], time[MAX_TIME_LENGTH];
 
     while (1) {
         comand = getchar();
@@ -239,8 +245,8 @@ int main() {
                 }
                 break;
             case 'e':
-                scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
-                veichle_entry(parks, num_parks, park_name, plate, date, time);
+                scanf("%s \"%[^\"]\" %s %s", park_name, plate, date, time);
+                veichle_entry(parks, &num_parks, park_name, plate, date, time);
                 break;
         }
     }
