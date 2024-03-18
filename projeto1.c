@@ -118,13 +118,7 @@ int is_valid_plate(const char *plate) {
 }
 
 void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate, char *date, char *time) {
-    int park_index = -1, i, park_name_len = strlen(park_name);
-
-    if (park_name_len > 0 && park_name[0] == '"') {
-        memmove(park_name, park_name + 1, park_name_len - 2);
-        park_name[park_name_len - 2] = '\0';
-        park_name_len -= 2;
-    }
+    int park_index = -1, i;
     
     for (i = 0; i < *num_parks; i++) {
         if (strcasecmp(parks[i].name, park_name) == 0) {
@@ -245,7 +239,7 @@ int main() {
                 }
                 break;
             case 'e':
-                scanf("%s \"%[^\"]\" %s %s", park_name, plate, date, time);
+                scanf("%s %s %s %s", park_name, plate, date, time);
                 veichle_entry(parks, &num_parks, park_name, plate, date, time);
                 break;
         }
