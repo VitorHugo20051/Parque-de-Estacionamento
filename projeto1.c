@@ -87,6 +87,30 @@ int is_valid_date(const char *date) {
     if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > 2100) {
         return 0;
     }
+
+    switch (month) {
+        case 1: case 3: case 5: case 7: case 8: case 10: case 12:
+            if (day > 31) {
+                return 0;
+            }
+            break;
+        case 4: case 6: case 9: case 11:
+            if (day > 30) {
+                return 0;
+            }
+            break;
+        case 2:
+            if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
+                if (day > 29) {
+                    return 0;
+                }
+            } else {
+                if (day > 28) {
+                    return 0;
+                }
+            }
+            break;
+    }
     return 1;
 }
 
@@ -109,22 +133,18 @@ int is_valid_plate(const char *plate) {
         return 0;
     }
 
-    if (!isupper(plate[0]) || !isupper(plate[1]) || plate[2] != '-' ||
-        !isdigit(plate[3]) || !isdigit(plate[4]) || plate[5] != '-' ||
-        !isupper(plate[6]) || !isupper(plate[7])) {
-            return 0;
+    if ((!isupper(plate[0]) || !isupper(plate[1]) || !isdigit(plate[3]) || 
+        !isdigit(plate[4]) || !isupper(plate[6]) || !isupper(plate[7])) && 
+        (!isdigit(plate[0]) || !isdigit(plate[1]) || !isupper(plate[3]) || 
+        !isupper(plate[4]) || !isdigit(plate[6]) || !isdigit(plate[7]))) {
+        return 0;
     }
 
-    if (!isdigit(plate[0]) || !isdigit(plate[1]) || plate[2] != '-' ||
-        !isupper(plate[3]) || !isupper(plate[4]) || plate[5] != '-' ||
-        !isdigit(plate[6]) || !isdigit(plate[7])) {
-            return 0;
-    }
     return 1;
 }
 
 void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate, char *date, char *time) {
-    int park_index = -1, i;
+    int park_index = -1, i, j;
     
     for (i = 0; i < *num_parks; i++) {
         if (strcasecmp(parks[i].name, park_name) == 0) {
@@ -144,20 +164,35 @@ void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate,
     }
 
     if (!is_valid_plate(plate)) {
-        printf("%s: invalid license plate.\n", plate);
+        printf("%s: invalid licence plate.\n", plate);
         return;
     }
 
-    for (i = 0; i < parks[park_index].num_records; i++) {
-        if (strcmp(parks[park_index].records[i].plate, plate) == 0) {
-            printf("%s: invalid veichle entry.\n", plate);
-            break;
+    for (j = 0; j < *num_parks; j++) {
+        if (j == park_index) {
+            continue;
+        }
+        for (i = 0; i < parks[j].num_records; i++) {
+            if (strcmp(parks[j].records[i].plate, plate) == 0) {
+                printf("%s: invalid vehicle entry.\n", plate);
+                return;
+            }
         }
     }
 
     if (!is_valid_time(time) || !is_valid_date(date)) {
         printf("invalid date.\n");
         return;
+    }
+
+    if (parks[park_index].num_records > 0) {
+        VeichleRecord *last_record = &parks[park_index].records[parks[park_index].num_records - 1];
+        if (strcmp(last_record->entry_date, date) == 0) {
+            if (strcmp(last_record->entry_time, time) > 0) {
+                printf("invalid date.\n");
+                return;
+            }
+        }
     }
 
     strcpy(parks[park_index].records[parks[park_index].num_records].plate, plate);
