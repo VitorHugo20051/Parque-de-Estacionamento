@@ -34,11 +34,6 @@ void quit_program() {
 }
 
 void create_park(Parking *parks, int *num_parks, char *name, int capacity, float X, float Y,  float Z) {
-    if (*num_parks >= MAX_PARKS) {
-        printf("too many parks.\n");
-        return;
-    }
-
     if (name != NULL) {
         for (int i = 0; i < *num_parks; i++) {
             if (strcmp(parks[i].name, name) == 0) {
@@ -48,33 +43,38 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
         }
     }
 
-    if (capacity < 0) {
+    if (capacity <= 0) {
         printf("%d: invalid capacity.\n", capacity);
         return;
     }
 
-    if (X < 0 || Y < 0 || Z < 0 || (X > Y && Y > Z)) {
+    if (X < 0 || Y < 0 || Z < 0 || X > Y || Y > Z || X > Z) {
         printf("invalid cost.\n");
         return;
     }
 
-    if (name != NULL && capacity != 0 && X != 0 && Y != 0 && Z != 0) {
-        parks[*num_parks].name = strdup(name);
-        parks[*num_parks].capacity = capacity;
-        parks[*num_parks].available_spots = capacity;
-        parks[*num_parks].costX = X;
-        parks[*num_parks].costY = Y;
-        parks[*num_parks].costZ = Z;
-        parks[*num_parks].num_records = 0;
-
-        (*num_parks)++;
+    if (*num_parks >= MAX_PARKS) {
+        printf("too many parks.\n");
+        return;
     }
-    else {
-        for (int i = 0; i < *num_parks; i++) {
-            int occupied_spots = parks[i].num_records;
-            int available_spots = parks[i].capacity - occupied_spots;
-            printf("%s %d %d\n", parks[i].name, parks[i].capacity, available_spots);
-        }
+
+    parks[*num_parks].name = strdup(name);
+    parks[*num_parks].capacity = capacity;
+    parks[*num_parks].available_spots = capacity;
+    parks[*num_parks].costX = X;
+    parks[*num_parks].costY = Y;
+    parks[*num_parks].costZ = Z;
+    parks[*num_parks].num_records = 0;
+
+    (*num_parks)++;
+    
+}
+
+void list_parks(const Parking *parks, int num_parks) {
+    for (int i = 0; i < num_parks; i++) {
+        int occupied_spots = parks[i].num_records;
+        int available_spots = parks[i].capacity - occupied_spots;
+        printf("%s %d %d\n", parks[i].name, parks[i].capacity, available_spots);
     }
 }
 
@@ -146,14 +146,6 @@ void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate,
         if (strcmp(parks[park_index].records[i].plate, plate) == 0) {
             printf("%s: invalid veichle entry.\n", plate);
             break;
-        }
-    }
-
-    for (i = 0; i < parks[park_index].num_records; i++) {
-        if (strcmp(parks[park_index].records[i].entry_date, date) == 0 &&
-            strcmp(parks[park_index].records[i].entry_time, time) == 0) {
-            printf("invalid date\n");
-            return;
         }
     }
 
@@ -235,15 +227,20 @@ int main() {
                     }
                 }    
                 else {
-                    create_park(parks, &num_parks, NULL, 0, 0, 0, 0);
+                    list_parks(parks, num_parks);
                 }
                 break;
             case 'e':
                 if (getchar() == ' ') {
-                    scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
-                    veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                    arguments = scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
+                    if (arguments == 4) {
+                        scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
+                        veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                    } else {
+                        scanf("%s %s %s %s", park_name, plate, date, time);
+                        veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                    }
                 }
-                free(park_name);
                 break;
         }
     }
