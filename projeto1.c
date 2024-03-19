@@ -114,6 +114,12 @@ int is_valid_plate(const char *plate) {
         !isupper(plate[6]) || !isupper(plate[7])) {
             return 0;
     }
+
+    if (!isdigit(plate[0]) || !isdigit(plate[1]) || plate[2] != '-' ||
+        !isupper(plate[3]) || !isupper(plate[4]) || plate[5] != '-' ||
+        !isdigit(plate[6]) || !isdigit(plate[7])) {
+            return 0;
+    }
     return 1;
 }
 
