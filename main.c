@@ -26,6 +26,18 @@ int main() {
                     create_park(parks, &num_parks, name, capacity, X, Y, Z);
                 }
                 break;
+            case 'e':
+                if (getchar() == ' ') {
+                    arguments = scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
+                    if (arguments == 4) {
+                        scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
+                        veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                    } else {
+                        scanf("%s %s %s %s", park_name, plate, date, time);
+                        veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                    }
+                }
+                break;
         }
     }
     free(name);
