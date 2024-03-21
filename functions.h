@@ -2,13 +2,13 @@
 #define _FUNCTIONS_
 
 #define MAX_PARKS 20
-#define MAX_PLATE_NAME 10
+#define MAX_PLATE 9
 #define MAX_DATE_LENGTH 11
 #define MAX_TIME_LENGTH 6
 #define MY_BUFSIZ 8192
 
 typedef struct {
-    char plate[MAX_PLATE_NAME];
+    char plate[MAX_PLATE];
     char entry_date[MAX_DATE_LENGTH];
     char entry_time[MAX_TIME_LENGTH];
     char exit_date[MAX_DATE_LENGTH];
@@ -34,6 +34,9 @@ int is_valid_date(const char *date);
 int is_valid_time(const char *time);
 int is_valid_plate(const char *plate);
 void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate, char *date, char *time);
+float calculate_bill(VeichleRecord *record, float costX, float costY, float costZ);
+void add_leading_zero(char *time);
+void veichle_exit(Parking *parks, int *num_parks, char *park_name, char *plate, char *date, char *time);
 
 
 #endif

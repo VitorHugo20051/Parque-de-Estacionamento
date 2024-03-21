@@ -6,11 +6,10 @@
 
 int main() {
     Parking parks[MAX_PARKS];
-    int num_parks = 0;
-    char *name = (char*)malloc(MY_BUFSIZ * sizeof(char));
-    int capacity;
+    int num_parks = 0, capacity, arguments;
+    char *name = (char*)malloc(MY_BUFSIZ * sizeof(char)), *park_name = (char*)malloc(MY_BUFSIZ * sizeof(char));
     float X, Y, Z;
-    char comand;
+    char comand, plate[MAX_PLATE], date[MAX_DATE_LENGTH], time[MAX_TIME_LENGTH];
 
     while (1) {
         comand = getchar();
@@ -18,12 +17,20 @@ int main() {
         switch (comand) {
             case 'q':
                 quit_program();
+                break;
             case 'p':
-                if (scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z) != 5) {
-                    create_park(parks, &num_parks, NULL, 0, 0, 0, 0);
-                }
+                if (getchar() == ' ') {
+                    arguments = scanf(" \"%[^\"]\" %d %f %f %f", name, &capacity, &X, &Y, &Z);
+                    if (arguments == 5) {
+                        create_park(parks, &num_parks, name, capacity, X, Y, Z);
+                    }
+                    else {
+                        scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z);
+                        create_park(parks, &num_parks, name, capacity, X, Y, Z);
+                    }
+                }    
                 else {
-                    create_park(parks, &num_parks, name, capacity, X, Y, Z);
+                    list_parks(parks, num_parks);
                 }
                 break;
             case 'e':
@@ -35,6 +42,18 @@ int main() {
                     } else {
                         scanf("%s %s %s %s", park_name, plate, date, time);
                         veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                    }
+                }
+                break;
+            case 's':
+                if (getchar() == ' ') {
+                    arguments = scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
+                    if (arguments == 4) {
+                        scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
+                        veichle_exit(parks, &num_parks, park_name, plate, date, time);
+                    } else {
+                        scanf("%s %s %s %s", park_name, plate, date, time);
+                        veichle_exit(parks, &num_parks, park_name, plate, date, time);
                     }
                 }
                 break;
