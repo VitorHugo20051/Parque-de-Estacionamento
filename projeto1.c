@@ -57,8 +57,9 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
         printf("too many parks.\n");
         return;
     }
-
-    parks[*num_parks].name = strdup(name);
+    
+    parks[*num_parks].name = malloc(strlen(name) + 1);
+    strcpy(parks[*num_parks].name, name);
     parks[*num_parks].capacity = capacity;
     parks[*num_parks].available_spots = capacity;
     parks[*num_parks].costX = X;
@@ -67,7 +68,7 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
     parks[*num_parks].num_records = 0;
 
     (*num_parks)++;
-    
+
 }
 
 void list_parks(const Parking *parks, int num_parks) {
@@ -133,9 +134,9 @@ int is_valid_plate(const char *plate) {
         return 0;
     }
 
-    if ((!isupper(plate[0]) || !isupper(plate[1]) || !isdigit(plate[3]) || 
-        !isdigit(plate[4]) || !isupper(plate[6]) || !isupper(plate[7])) && 
-        (!isdigit(plate[0]) || !isdigit(plate[1]) || !isupper(plate[3]) || 
+    if ((!isupper(plate[0]) || !isupper(plate[1]) || !isdigit(plate[3]) ||
+        !isdigit(plate[4]) || !isupper(plate[6]) || !isupper(plate[7])) &&
+        (!isdigit(plate[0]) || !isdigit(plate[1]) || !isupper(plate[3]) ||
         !isupper(plate[4]) || !isdigit(plate[6]) || !isdigit(plate[7]))) {
         return 0;
     }
@@ -145,7 +146,7 @@ int is_valid_plate(const char *plate) {
 
 void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate, char *date, char *time) {
     int park_index = -1, i, j;
-    
+
     for (i = 0; i < *num_parks; i++) {
         if (strcasecmp(parks[i].name, park_name) == 0) {
             park_index = i;
@@ -207,28 +208,36 @@ void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate,
 float calculate_bill(VeichleRecord *record, float costX, float costY, float costZ) {
     float bill = 0.0;
     int entry_hour, entry_minute, exit_hour, exit_minute;
+    int entry_minutes, exit_minutes, total_minutes, full_days, periods;
 
     sscanf(record->entry_time, "%d:%d", &entry_hour, &entry_minute);
     sscanf(record->exit_time, "%d:%d", &exit_hour, &exit_minute);
 
-    int total_minutes = (atoi(record->exit_date) - atoi(record->entry_date)) * 24 * 60;
-    total_minutes += (exit_hour - entry_hour) * 60 + (exit_minute - entry_minute);
+    entry_minutes = entry_hour * 60 + entry_minute;
+    exit_minutes = exit_hour * 60 + exit_minute;
+    total_minutes = (atoi(record->exit_date) - atoi(record->entry_date)) * 24 * 60;
+    total_minutes += exit_minutes - entry_minutes;
+    full_days = total_minutes / (24 * 60);
 
-    int full_days = total_minutes / (24 * 60);
-    bill += full_days * costZ;
-
-    int remaining_minutes = total_minutes % (24 * 60);
-    if (remaining_minutes > 0) {
-        int first_hour_minutes = 60 - entry_minute;
-        if (remaining_minutes <= 60) {
-            bill += costX;
+    if (full_days >= 1) {
+        bill = full_days * costZ;
+        periods = total_minutes / 15;
+        if (periods > 4) {
+            bill += 4 * costX;
+            bill += (periods - 4) * costY;
         } else {
-            bill += costX;
-            remaining_minutes -= first_hour_minutes;
-            int additional_hours = (remaining_minutes + 14) / 15; // Arredondar para cima
-            bill += additional_hours * costY;
+            bill = periods * costX;
+        }
+    } else {
+        periods = total_minutes / 15;
+        if (periods > 4) {
+            bill += 4 * costX;
+            bill += (periods - 4) * costY;
+        } else {
+            bill = periods * costX;
         }
     }
+
     return bill;
 }
 
@@ -326,7 +335,7 @@ int main() {
                         scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z);
                         create_park(parks, &num_parks, name, capacity, X, Y, Z);
                     }
-                }    
+                }
                 else {
                     list_parks(parks, num_parks);
                 }
@@ -358,5 +367,6 @@ int main() {
         }
     }
     free(name);
+    free(park_name);
     return 0;
 }
