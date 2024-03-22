@@ -33,6 +33,13 @@ void quit_program() {
     exit(0);
 }
 
+void free_parks(Parking *parks, int num_parks) {
+    int i;
+    for (i = 0; i < num_parks; i++) {
+        free(parks[i].name);
+    }
+}
+
 void create_park(Parking *parks, int *num_parks, char *name, int capacity, float X, float Y,  float Z) {
     if (name != NULL) {
         for (int i = 0; i < *num_parks; i++) {
@@ -314,15 +321,19 @@ void veichle_exit(Parking *parks, int *num_parks, char *park_name, char *plate, 
 int main() {
     Parking parks[MAX_PARKS];
     int num_parks = 0, capacity, arguments;
-    char *name = (char*)malloc(MY_BUFSIZ * sizeof(char)), *park_name = (char*)malloc(MY_BUFSIZ * sizeof(char));
+    char *name, *park_name;
     float X, Y, Z;
     char comand, plate[MAX_PLATE], date[MAX_DATE_LENGTH], time[MAX_TIME_LENGTH];
+    name = (char*)malloc(MY_BUFSIZ * sizeof(char));
+    park_name = (char*)malloc(MY_BUFSIZ * sizeof(char));
 
     while (1) {
         comand = getchar();
 
         switch (comand) {
             case 'q':
+                free_parks(parks, num_parks);
+                free(name);
                 quit_program();
                 break;
             case 'p':
@@ -366,7 +377,5 @@ int main() {
                 break;
         }
     }
-    free(name);
-    free(park_name);
     return 0;
 }
