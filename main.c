@@ -7,15 +7,19 @@
 int main() {
     Parking parks[MAX_PARKS];
     int num_parks = 0, capacity, arguments;
-    char *name = (char*)malloc(MY_BUFSIZ * sizeof(char)), *park_name = (char*)malloc(MY_BUFSIZ * sizeof(char));
+    char *name, *park_name;
     float X, Y, Z;
     char comand, plate[MAX_PLATE], date[MAX_DATE_LENGTH], time[MAX_TIME_LENGTH];
+    name = (char*)malloc(MY_BUFSIZ * sizeof(char));
+    park_name = (char*)malloc(MY_BUFSIZ * sizeof(char));
 
     while (1) {
         comand = getchar();
 
         switch (comand) {
             case 'q':
+                free_parks(parks, num_parks);
+                free(name);
                 quit_program();
                 break;
             case 'p':
@@ -28,7 +32,7 @@ int main() {
                         scanf("%s %d %f %f %f", name, &capacity, &X, &Y, &Z);
                         create_park(parks, &num_parks, name, capacity, X, Y, Z);
                     }
-                }    
+                }
                 else {
                     list_parks(parks, num_parks);
                 }
@@ -59,6 +63,5 @@ int main() {
                 break;
         }
     }
-    free(name);
     return 0;
 }
