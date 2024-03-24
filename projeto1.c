@@ -214,7 +214,7 @@ void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate,
 
 float calculate_bill(VeichleRecord *record, float costX, float costY, float costZ) {
     float bill = 0.0;
-    int entry_hour, entry_minute, exit_hour, exit_minute;
+    int entry_hour, entry_minute, exit_hour, exit_minute, total_hours;
     int entry_minutes, exit_minutes, total_minutes, full_days, periods;
 
     sscanf(record->entry_time, "%d:%d", &entry_hour, &entry_minute);
@@ -225,27 +225,117 @@ float calculate_bill(VeichleRecord *record, float costX, float costY, float cost
     total_minutes = (atoi(record->exit_date) - atoi(record->entry_date)) * 24 * 60;
     total_minutes += exit_minutes - entry_minutes;
     full_days = total_minutes / (24 * 60);
+    total_hours = total_minutes / 60;
 
-    if (full_days >= 1) {
-        bill = full_days * costZ;
-        periods = total_minutes / 15;
-        if (periods > 4) {
-            bill += 4 * costX;
-            bill += (periods - 4) * costY;
-        } else {
-            bill = periods * costX;
+    if ((atoi(record->entry_date) < 2 || (atoi(record->entry_date) == 2 && atoi(record->entry_date + 3) < 29)) &&
+        (atoi(record->exit_date) > atoi(record->entry_date) || atoi(record->exit_date + 3) > 2 ||
+         (atoi(record->exit_date + 3) == 2 && atoi(record->exit_date) > 29))) {
+        bill = costZ;
+    }
+
+    periods = (total_minutes + 14) / 15;
+
+    if (total_hours < 1) {
+        bill += periods * costX;
+    } else if (total_hours < 24) {
+        bill += 4 * costX; 
+        bill += (periods - 4) * costY;
+        if (bill > costZ) {
+            bill = costZ;
         }
     } else {
-        periods = total_minutes / 15;
-        if (periods > 4) {
-            bill += 4 * costX;
-            bill += (periods - 4) * costY;
-        } else {
-            bill = periods * costX;
+        bill = costZ;
+        int full_days_minutes = full_days * 24 * 60;
+        bill += full_days * costZ;
+        int remaining_minutes = total_minutes - full_days_minutes;
+        if (remaining_minutes < 0) {
+            remaining_minutes = 0;
+        }
+        bill += calculate_bill(record, costX, costY, costZ);
+
+    }
+    return bill;
+}
+
+char *get_last_entry_time(const Parking *park) {
+    const char *last_entry_time = NULL;
+
+    if (park->num_records > 0) {
+        for (int i = park->num_records - 1; i >= 0; i--) {
+            if (park->records[i].entry_date[0] != '\0') {
+                last_entry_time = park->records[i].entry_time;
+                break;
+            }
         }
     }
 
-    return bill;
+    return (char *)last_entry_time;
+}
+
+char *get_last_exit_time(const Parking *park) {
+    const char *last_exit_time = NULL;
+
+    if (park->num_records > 0) {
+        for (int i = park->num_records - 1; i >= 0; i--) {
+            if (park->records[i].exit_date[0] != '\0') {
+                last_exit_time = park->records[i].exit_time;
+                break;
+            }
+        }
+    }
+
+    return (char *)last_exit_time;
+}
+
+int is_exit_before_entry(const Parking *park, const char *entry_date, const char *entry_time, const char *exit_date, const char *exit_time) {
+    int entry_hour, entry_minute, exit_hour, exit_minute;
+
+    sscanf(entry_time, "%d:%d", &entry_hour, &entry_minute);
+    sscanf(exit_time, "%d:%d", &exit_hour, &exit_minute);
+
+    const char *last_entry_time = get_last_entry_time(park);
+    const char *last_exit_time = get_last_exit_time(park);
+
+    if (last_entry_time != NULL && last_exit_time == NULL) {
+        int last_entry_hour = atoi(last_entry_time);
+        int last_entry_minute = atoi(last_entry_time + 3); 
+
+        if (last_entry_hour >= exit_hour && last_entry_minute >= exit_minute) {
+            return 1;
+        }
+
+        else if (strcmp(exit_date, entry_date) < 0) {
+            return 1;
+        }
+        else if (strcmp(exit_date, entry_date) == 0) {
+            if (entry_hour == exit_hour) {
+                return exit_minute < entry_minute;
+            }
+            else {
+                return exit_hour < entry_hour;
+            }
+        }
+    } else { 
+        int last_exit_hour = atoi(last_exit_time);
+        int last_exit_minute = atoi(last_exit_time + 3);
+
+        if (last_exit_hour == exit_hour && last_exit_minute == exit_minute) {
+            return 1;
+        }
+
+        else if (strcmp(exit_date, entry_date) < 0) {
+            return 1;
+        }
+        else if (strcmp(exit_date, entry_date) == 0) {
+            if (entry_hour == exit_hour) {
+                return exit_minute < entry_minute;
+            }
+            else {
+                return exit_hour < entry_hour;
+            }
+        }
+    }
+    return 0; 
 }
 
 void add_leading_zero(char *time) {
@@ -284,22 +374,18 @@ void veichle_exit(Parking *parks, int *num_parks, char *park_name, char *plate, 
     }
 
     if (veichle_index == -1) {
-        printf("%s: invalid veichle exit.\n", plate);
+        printf("%s: invalid vehicle exit.\n", plate);
         return;
     }
 
     if (!is_valid_date(date) || !is_valid_time(time)) {
-        printf("invalid date\n");
+        printf("invalid date.\n");
         return;
     }
 
-    if (parks[park_index].num_records > 0) {
-        VeichleRecord *last_record = &parks[park_index].records[parks[park_index].num_records - 1];
-        if ((strcmp(last_record->exit_date, date) == 0 && strcmp(last_record->exit_time, time) > 0) ||
-            strcmp(last_record->exit_date, date) > 0) {
-            printf("invalid date.\n");
-            return;
-        }
+    if (is_exit_before_entry(parks, parks[park_index].records[veichle_index].entry_date, parks[park_index].records[veichle_index].entry_time, date, time)) {
+        printf("invalid date.\n");
+        return;
     }
 
     strcpy(parks[park_index].records[veichle_index].exit_date, date);
