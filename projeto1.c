@@ -9,7 +9,7 @@
 #define MAX_TIME_LENGTH 6
 #define MY_BUFSIZ 8192
 
-typedef struct {
+typedef struct VeichleRecord {
     char plate[MAX_PLATE];
     char entry_date[MAX_DATE_LENGTH];
     char entry_time[MAX_TIME_LENGTH];
@@ -25,7 +25,7 @@ typedef struct {
     float costX;
     float costY;
     float costZ;
-    VeichleRecord records[MAX_PARKS];
+    struct VeichleRecord *records;
     int num_records;
 } Parking;
 
@@ -37,10 +37,12 @@ void free_parks(Parking *parks, int num_parks) {
     int i;
     for (i = 0; i < num_parks; i++) {
         free(parks[i].name);
+        free(parks[i].records);
     }
 }
 
 void create_park(Parking *parks, int *num_parks, char *name, int capacity, float X, float Y,  float Z) {
+    int len = strlen(name);
     if (name != NULL) {
         for (int i = 0; i < *num_parks; i++) {
             if (strcmp(parks[i].name, name) == 0) {
@@ -65,7 +67,7 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
         return;
     }
     
-    parks[*num_parks].name = malloc(strlen(name) + 1);
+    parks[*num_parks].name = malloc(len + 1);
     strcpy(parks[*num_parks].name, name);
     parks[*num_parks].capacity = capacity;
     parks[*num_parks].available_spots = capacity;
@@ -73,6 +75,7 @@ void create_park(Parking *parks, int *num_parks, char *name, int capacity, float
     parks[*num_parks].costY = Y;
     parks[*num_parks].costZ = Z;
     parks[*num_parks].num_records = 0;
+    parks[*num_parks].records = malloc(capacity * sizeof(VeichleRecord));
 
     (*num_parks)++;
 
@@ -135,18 +138,32 @@ int is_valid_time(const char *time) {
 }
 
 int is_valid_plate(const char *plate) {
-    int len = strlen(plate);
+    int len = strlen(plate), digit = 0, upper = 0, i;
+    char last = '\0';
 
     if (len != 8) {
         return 0;
     }
 
-    if ((!isupper(plate[0]) || !isupper(plate[1]) || !isdigit(plate[3]) ||
-        !isdigit(plate[4]) || !isupper(plate[6]) || !isupper(plate[7])) &&
-        (!isdigit(plate[0]) || !isdigit(plate[1]) || !isupper(plate[3]) ||
-        !isupper(plate[4]) || !isdigit(plate[6]) || !isdigit(plate[7]))) {
-        return 0;
+    for (i = 0; i < len; i++) {
+        if (isalpha(plate[i])) {
+            upper++;
+            if (!isupper(plate[i]))
+                return 0;
+            if (isdigit(last))
+                return 0;
+        } else if (isdigit(plate[i])) {
+            digit++;
+            if (isalpha(last))
+                return 0;
+        } else if (plate[i] != '-') {
+            return 0;
+        }
+        last = plate[i];
     }
+
+    if (upper < 2 || digit < 2)
+        return 0;
 
     return 1;
 }
@@ -155,7 +172,7 @@ void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate,
     int park_index = -1, i, j;
 
     for (i = 0; i < *num_parks; i++) {
-        if (strcasecmp(parks[i].name, park_name) == 0) {
+        if (strcmp(parks[i].name, park_name) == 0) {
             park_index = i;
             break;
         }
@@ -176,14 +193,13 @@ void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate,
         return;
     }
 
-    for (j = 0; j < *num_parks; j++) {
-        if (j == park_index) {
-            continue;
-        }
-        for (i = 0; i < parks[j].num_records; i++) {
-            if (strcmp(parks[j].records[i].plate, plate) == 0) {
-                printf("%s: invalid vehicle entry.\n", plate);
-                return;
+    for (i = 0; i < *num_parks; i++) {
+        if (i != park_index) {
+            for (j = 0; j < parks[i].num_records; j++) {
+                if (strcmp(parks[i].records[j].plate, plate) == 0 && parks[i].records[j].exit_date[0] == '\0') {
+                    printf("%s: invalid vehicle entry.\n", plate);
+                    return;
+                }
             }
         }
     }
@@ -202,63 +218,87 @@ void veichle_entry(Parking *parks, int *num_parks, char *park_name, char *plate,
             }
         }
     }
-
+    parks[park_index].records = realloc(parks[park_index].records, (parks[park_index].num_records + 1) * sizeof(VeichleRecord));
     strcpy(parks[park_index].records[parks[park_index].num_records].plate, plate);
     strcpy(parks[park_index].records[parks[park_index].num_records].entry_date, date);
     strcpy(parks[park_index].records[parks[park_index].num_records].entry_time, time);
+    strcpy(parks[park_index].records[parks[park_index].num_records].exit_date, "");
+    strcpy(parks[park_index].records[parks[park_index].num_records].exit_time, "");
+    parks[park_index].records[parks[park_index].num_records].bill = 0.0;
+
     parks[park_index].num_records++;
     parks[park_index].available_spots--;
 
     printf("%s %d\n", park_name, parks[park_index].available_spots);
 }
 
-float calculate_bill(VeichleRecord *record, float costX, float costY, float costZ) {
-    float bill = 0.0;
-    int entry_hour, entry_minute, exit_hour, exit_minute, total_hours;
-    int entry_minutes, exit_minutes, total_minutes, full_days, periods;
+int days_in_month(int month, int year) {
+    switch (month) {
+        case 1: case 3: case 5: case 7: case 8: case 10: case 12:
+            return 31;
+            break;
+        case 4: case 6: case 9: case 11:
+            return 30;
+            break;
+        case 2:
+            if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
+                return 29;
+            } else {
+                return 28;
+            }
+            break;
+    }
+    return -1;
+}
 
-    sscanf(record->entry_time, "%d:%d", &entry_hour, &entry_minute);
-    sscanf(record->exit_time, "%d:%d", &exit_hour, &exit_minute);
+int days_since_year_start(int month, int day, int year) {
+    int days = day;
+    for (int m = 1; m < month; m++) {
+        days += days_in_month(m, year);
+    }
+    days += day;
+    return days;
+}
 
-    entry_minutes = entry_hour * 60 + entry_minute;
-    exit_minutes = exit_hour * 60 + exit_minute;
-    total_minutes = (atoi(record->exit_date) - atoi(record->entry_date)) * 24 * 60;
-    total_minutes += exit_minutes - entry_minutes;
-    full_days = total_minutes / (24 * 60);
-    total_hours = total_minutes / 60;
+int minutes_since_reference_date(const char *date, const char *time) {
+    int day, month, year, hours, minutes, total_minutes, y = 0, m = 0;
 
-    if ((atoi(record->entry_date) < 2 || (atoi(record->entry_date) == 2 && atoi(record->entry_date + 3) < 29)) &&
-        (atoi(record->exit_date) > atoi(record->entry_date) || atoi(record->exit_date + 3) > 2 ||
-         (atoi(record->exit_date + 3) == 2 && atoi(record->exit_date) > 29))) {
-        bill = costZ;
+    sscanf(date, "%d-%d-%d", &day, &month, &year);
+    sscanf(time, "%d:%d", &hours, &minutes);
+
+    total_minutes = 0;
+
+    for (y = 1900; y < year; y++) {
+        total_minutes += 365 * 24 * 60;
+        if ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)) {
+            total_minutes += 24 * 60;
+        }
+    }
+    for (m = 1; m < month; m++) {
+        total_minutes += days_in_month(m, year) * 24 * 60;
     }
 
-    periods = (total_minutes + 14) / 15;
+    total_minutes += (day - 1) * 24 * 60;
+    total_minutes += hours * 60;
+    total_minutes += minutes;
 
-    if (total_hours < 1) {
-        bill += periods * costX;
-    } else if (total_hours < 24) {
-        bill += 4 * costX; 
-        bill += (periods - 4) * costY;
-        if (bill > costZ) {
-            bill = costZ;
-        }
-    } else {
-        bill = costZ;
-        int full_days_minutes = full_days * 24 * 60;
-        bill += full_days * costZ;
-        int remaining_minutes = total_minutes - full_days_minutes;
-        if (remaining_minutes < 0) {
-            remaining_minutes = 0;
-        }
-        bill += calculate_bill(record, costX, costY, costZ);
+    return total_minutes;
+}
 
+int is_29_day(char *date) {
+    int day, month, year;
+    sscanf(date, "%d-%d-%d", &day, &month, &year);
+
+    if (month == 2 && day == 29) {
+        if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
+            return 1; 
+        }
     }
-    return bill;
+    return 0;
 }
 
 char *get_last_entry_time(const Parking *park) {
-    const char *last_entry_time = NULL;
+    char *last_entry_time = NULL;
 
     if (park->num_records > 0) {
         for (int i = park->num_records - 1; i >= 0; i--) {
@@ -269,11 +309,11 @@ char *get_last_entry_time(const Parking *park) {
         }
     }
 
-    return (char *)last_entry_time;
+    return last_entry_time;
 }
 
 char *get_last_exit_time(const Parking *park) {
-    const char *last_exit_time = NULL;
+    char *last_exit_time = NULL;
 
     if (park->num_records > 0) {
         for (int i = park->num_records - 1; i >= 0; i--) {
@@ -284,30 +324,32 @@ char *get_last_exit_time(const Parking *park) {
         }
     }
 
-    return (char *)last_exit_time;
+    return last_exit_time;
 }
 
 int is_exit_before_entry(const Parking *park, const char *entry_date, const char *entry_time, const char *exit_date, const char *exit_time) {
     int entry_hour, entry_minute, exit_hour, exit_minute;
+    int entry_day, entry_month, entry_year, exit_day, exit_month, exit_year;
+    int last_entry_hour, last_exit_hour, last_entry_minute, last_exit_minute;
 
+    sscanf(entry_date, "%d-%d-%d", &entry_day, &entry_month, &entry_year);
+    sscanf(exit_date, "%d-%d-%d", &exit_day, &exit_month, &exit_year);
     sscanf(entry_time, "%d:%d", &entry_hour, &entry_minute);
     sscanf(exit_time, "%d:%d", &exit_hour, &exit_minute);
 
-    const char *last_entry_time = get_last_entry_time(park);
-    const char *last_exit_time = get_last_exit_time(park);
+    char *last_entry_time = get_last_entry_time(park);
+    char *last_exit_time = get_last_exit_time(park);
 
     if (last_entry_time != NULL && last_exit_time == NULL) {
-        int last_entry_hour = atoi(last_entry_time);
-        int last_entry_minute = atoi(last_entry_time + 3); 
-
+        sscanf(last_entry_time, "%d:%d", &last_entry_hour, &last_entry_minute);
         if (last_entry_hour >= exit_hour && last_entry_minute >= exit_minute) {
             return 1;
         }
-
-        else if (strcmp(exit_date, entry_date) < 0) {
+        else if (exit_year < entry_year || (exit_year == entry_year && exit_month < entry_month) ||
+                (exit_year == entry_year && exit_month == entry_month && exit_day < entry_day)) {
             return 1;
         }
-        else if (strcmp(exit_date, entry_date) == 0) {
+        else if (exit_year == entry_year && exit_month == entry_month && exit_day == entry_day) {
             if (entry_hour == exit_hour) {
                 return exit_minute < entry_minute;
             }
@@ -315,18 +357,16 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
                 return exit_hour < entry_hour;
             }
         }
-    } else { 
-        int last_exit_hour = atoi(last_exit_time);
-        int last_exit_minute = atoi(last_exit_time + 3);
-
-        if (last_exit_hour == exit_hour && last_exit_minute == exit_minute) {
+    } else if (last_exit_time != NULL && last_entry_time == NULL) {
+        sscanf(last_exit_time, "%d:%d", &last_exit_hour, &last_exit_minute);
+        if (last_exit_hour >= exit_hour && last_exit_minute >= exit_minute) {
             return 1;
         }
-
-        else if (strcmp(exit_date, entry_date) < 0) {
+        else if (exit_year < entry_year || (exit_year == entry_year && exit_month < entry_month) ||
+                (exit_year == entry_year && exit_month == entry_month && exit_day < entry_day)) {
             return 1;
         }
-        else if (strcmp(exit_date, entry_date) == 0) {
+        else if (exit_year == entry_year && exit_month == entry_month && exit_day == entry_day) {
             if (entry_hour == exit_hour) {
                 return exit_minute < entry_minute;
             }
@@ -335,7 +375,40 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
             }
         }
     }
-    return 0; 
+    
+    return 0;
+}
+
+float calculate_bill(Parking *park, int total_minutes, VeichleRecord *record, float costX, float costY, float costZ) {
+    float bill = 0.0;
+    int periods = (total_minutes + 14) / 15, full_days, remaining_minutes;
+
+    if (is_29_day(record->entry_date) || is_29_day(record->exit_date)) {
+        if (is_exit_before_entry(park, record->entry_date, record->entry_time, record->exit_date, record->exit_time)) {
+            bill -= costZ;
+        }
+    }
+
+    if (total_minutes <= 60) {
+        bill = periods * costX;
+    } 
+    else if (total_minutes < (24 * 60)) {
+        bill += 4 * costX;
+        bill += (periods - 4) * costY;
+        if (bill > costZ) {
+            bill = costZ;
+        }
+    } 
+    else if (total_minutes > (24 * 60)){
+        full_days = total_minutes / (24 * 60);
+        bill += full_days * costZ;
+        remaining_minutes = total_minutes - (full_days * 24 * 60);
+        if (remaining_minutes < 0) {
+            remaining_minutes = 0;
+        }
+        bill += calculate_bill(park, remaining_minutes, record, costX, costY, costZ);
+    }
+    return bill;    
 }
 
 void add_leading_zero(char *time) {
@@ -347,7 +420,7 @@ void add_leading_zero(char *time) {
 }
 
 void veichle_exit(Parking *parks, int *num_parks, char *park_name, char *plate, char *date, char *time) {
-    int park_index = -1, veichle_index = -1, i;
+    int park_index = -1, veichle_index = -1, i = 0, total_entry_minutes, total_exit_minutes, total_minutes, j = 0;
 
     for (i = 0; i < *num_parks; i++) {
         if (strcmp(parks[i].name, park_name) == 0) {
@@ -366,9 +439,19 @@ void veichle_exit(Parking *parks, int *num_parks, char *park_name, char *plate, 
         return;
     }
 
-    for (i = 0; i < parks[park_index].num_records; i++) {
-        if (strcmp(parks[park_index].records[i].plate, plate) == 0) {
-            veichle_index = i;
+    for (i = 0; i < *num_parks; i++) {
+        for (j = 0; j < parks[i].num_records; j++) {
+            if (strcmp(parks[i].records[j].plate, plate) == 0) {
+                if (parks[i].records[j].exit_date[0] != '\0') {
+                    printf("%s: invalid vehicle exit.\n", plate);
+                    return;
+                } else {
+                    veichle_index = j;
+                    break;
+                }
+            }
+        }
+        if (veichle_index != -1) {
             break;
         }
     }
@@ -390,19 +473,117 @@ void veichle_exit(Parking *parks, int *num_parks, char *park_name, char *plate, 
 
     strcpy(parks[park_index].records[veichle_index].exit_date, date);
     strcpy(parks[park_index].records[veichle_index].exit_time, time);
-
-    float bill = calculate_bill(&parks[park_index].records[veichle_index], parks[park_index].costX, parks[park_index].costY, parks[park_index].costZ);
-    parks[park_index].records[veichle_index].bill = bill;
-
-    add_leading_zero(parks[park_index].records[veichle_index].entry_time);
-    add_leading_zero(time);
-
-    printf("%s %s %s %s %s %.2f\n", plate, parks[park_index].records[veichle_index].entry_date, parks[park_index].records[veichle_index].entry_time,
-    date, time, bill);
-
     parks[park_index].num_records--;
     parks[park_index].available_spots++;
+
+    total_entry_minutes = minutes_since_reference_date(parks[park_index].records[veichle_index].entry_date, parks[park_index].records[veichle_index].entry_time);
+    total_exit_minutes = minutes_since_reference_date(date, time);
+    total_minutes = total_exit_minutes - total_entry_minutes;
+
+    float bill = calculate_bill(parks, total_minutes, &parks[park_index].records[veichle_index], parks[park_index].costX, parks[park_index].costY, parks[park_index].costZ);
+    parks[park_index].records[veichle_index].bill = bill;
+
+    if (isdigit(parks[park_index].records[veichle_index].entry_time[0]) && parks[park_index].records[veichle_index].entry_time[1] == ':') {
+        add_leading_zero(parks[park_index].records[veichle_index].entry_time);
+    }
+    if (isdigit(time[0]) && time[1] == ':') {
+        add_leading_zero(time);
+    }
+    
+    printf("%s %s %s %s %s %.2f\n", plate, parks[park_index].records[veichle_index].entry_date, parks[park_index].records[veichle_index].entry_time,
+    date, time, bill);
 }
+
+void print_car_records(Parking *parks, int *num_parks, const char *plate) {
+    int found = 0, i = 0, j = 0;
+
+    if(!(is_valid_plate(plate))) {
+        printf("%s: invalid plate.\n", plate);
+    }
+
+     for (i = 0; i < *num_parks; i++) {
+        for (j = 0; j < parks[i].num_records; j++) {
+            if (strcmp(parks[i].records[j].plate, plate) == 0) {
+                found = 1;
+                if (parks[i].records[j].exit_date[0] != '\0') {
+                    printf("%s %s %s %s %s\n", parks[i].records[j].plate,
+                           parks[i].records[j].entry_date,
+                           parks[i].records[j].entry_time,
+                           parks[i].records[j].exit_date,
+                           parks[i].records[j].exit_time);
+                } else {
+                    printf("%s %s\n", parks[i].records[j].plate,
+                           parks[i].records[j].entry_date);
+                }
+            }
+        }
+    }
+    if (!found) {
+        printf("%s: no entries found in any parking.\n", plate);
+    }
+}
+
+void show_billing(const Parking *parks, int *num_parks, char *park_name, char *date) {
+    int park_index = -1, i, found = 0;
+    int has_date = (date[0] != '\0');
+
+    for (i = 0; i < *num_parks; i++) {
+        if (strcmp(parks[i].name, park_name) == 0) {
+            park_index = i;
+            break;
+        }
+    }
+
+    if (park_index == -1) {
+        printf("%s: no such parking.\n", park_name);
+        return;
+    }
+
+    if (has_date && !is_valid_date(date)) {
+        printf("invalid date.\n");
+        return;
+    }
+
+    if (!has_date) {
+        for (i = 0; i < parks[park_index].num_records; i++) {
+            VeichleRecord *record = &parks[park_index].records[i];
+            printf("%s %.2f\n", record->exit_date, record->bill);
+        }
+    } else {
+        found = 0;
+        for (i = 0; i < parks[park_index].num_records; i++) {
+            VeichleRecord *record = &parks[park_index].records[i];
+            if (strcmp(record->exit_date, date) == 0) {
+                printf("%s %s %.2f\n", record->plate, record->exit_time, record->bill);
+                found = 1;
+            }
+        }
+        if (!found) {
+            printf("No billing details found for %s on %s.\n", park_name, date);
+        }
+    }
+}
+
+void remove_park(Parking *parks, int *num_parks, char *park_name) {
+    int park_index = -1, i = 0;
+    for (i = 0; i < *num_parks; i++) {
+        if (strcmp(parks[i].name, park_name) == 0) {
+            park_index = i;
+            break;
+        }
+    }
+    if (park_index == -1) {
+        printf("%s: no such parking.\n", park_name);
+        return;
+    }
+    free(parks[park_index].name);
+    free(parks[park_index].records);
+    for (int i = park_index; i < *num_parks - 1; i++) {
+        parks[i] = parks[i + 1];
+    }
+    (*num_parks)--;
+}
+
 
 int main() {
     Parking parks[MAX_PARKS];
@@ -414,12 +595,13 @@ int main() {
     park_name = (char*)malloc(MY_BUFSIZ * sizeof(char));
 
     while (1) {
-        comand = getchar();
+        scanf("%c", &comand);
 
         switch (comand) {
             case 'q':
                 free_parks(parks, num_parks);
                 free(name);
+                free(park_name);
                 quit_program();
                 break;
             case 'p':
@@ -438,27 +620,43 @@ int main() {
                 }
                 break;
             case 'e':
-                if (getchar() == ' ') {
-                    arguments = scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
-                    if (arguments == 4) {
-                        scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
-                        veichle_entry(parks, &num_parks, park_name, plate, date, time);
-                    } else {
-                        scanf("%s %s %s %s", park_name, plate, date, time);
-                        veichle_entry(parks, &num_parks, park_name, plate, date, time);
-                    }
+                arguments = scanf(" \"%[^\"]\" %8s %s %5s", park_name, plate, date, time);
+                if (arguments == 4) {
+                    veichle_entry(parks, &num_parks, park_name, plate, date, time);
+                } else {
+                    scanf("%s %8s %s %5s", park_name, plate, date, time);
+                    veichle_entry(parks, &num_parks, park_name, plate, date, time);
                 }
                 break;
             case 's':
-                if (getchar() == ' ') {
-                    arguments = scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
-                    if (arguments == 4) {
-                        scanf(" \"%[^\"]\" %s %s %s", park_name, plate, date, time);
-                        veichle_exit(parks, &num_parks, park_name, plate, date, time);
-                    } else {
-                        scanf("%s %s %s %s", park_name, plate, date, time);
-                        veichle_exit(parks, &num_parks, park_name, plate, date, time);
-                    }
+                arguments = scanf(" \"%[^\"]\" %8s %s %5s", park_name, plate, date, time);
+                if (arguments == 4) {
+                    veichle_exit(parks, &num_parks, park_name, plate, date, time);
+                } else {
+                    scanf("%s %8s %s %5s", park_name, plate, date, time);
+                    veichle_exit(parks, &num_parks, park_name, plate, date, time);
+                }
+                break;
+            case 'v':
+                scanf(" %s", plate);
+                show_billing(parks, &num_parks, park_name, date);
+                break;
+            case 'f':
+                arguments = scanf(" \"%[^\"]\"", park_name);
+                if (arguments == 1) {
+                    show_billing(parks, &num_parks, park_name, "");
+                } else {
+                    scanf(" %s", date);
+                    show_billing(parks, &num_parks, park_name, date);
+                }
+                break;
+            case 'r':
+                arguments = scanf(" \"%[^\"]\"", park_name);
+                if (arguments == 1) {
+                    remove_park(parks, &num_parks, park_name);
+                } else {
+                    scanf("%s", park_name);
+                    remove_park(parks, &num_parks, park_name);
                 }
                 break;
         }
