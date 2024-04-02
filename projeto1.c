@@ -352,7 +352,7 @@ char *get_last_exit_date(const Parking *park) {
     if (park->num_records > 0) {
         for (int i = park->num_records - 1; i >= 0; i--) {
             if (park->records[i].entry_date[0] != '\0') {
-                last_exit_time = park->records[i].exit_date;
+                last_exit_date = park->records[i].exit_date;
                 break;
             }
         }
@@ -365,7 +365,6 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
     int entry_hour, entry_minute, exit_hour, exit_minute;
     int entry_day, entry_month, entry_year, exit_day, exit_month, exit_year;
     int last_entry_hour, last_exit_hour, last_entry_minute, last_exit_minute;
-    int last_exit_date, last_entry_date;
     int last_entry_day, last_entry_month, last_entry_year, last_exit_day, last_exit_month, last_exit_year;
 
     sscanf(entry_date, "%d-%d-%d", &entry_day, &entry_month, &entry_year);
@@ -386,11 +385,12 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
         if (last_entry_year > exit_year || (last_entry_year == exit_year && last_entry_month > exit_month) ||
             (last_entry_year == exit_year && last_entry_month == exit_month && last_entry_day > exit_day)) {
                 return 1;
+        } else if (last_entry_year == exit_year && last_entry_month == exit_month && last_entry_day == exit_day) {
+            if (last_entry_hour >= exit_hour && last_entry_minute >= exit_minute) {
+                return 1;
+            }
         }
 
-        if (last_entry_hour >= exit_hour && last_entry_minute >= exit_minute) {
-            return 1;
-        }
         else if (exit_year < entry_year || (exit_year == entry_year && exit_month < entry_month) ||
                 (exit_year == entry_year && exit_month == entry_month && exit_day < entry_day)) {
             return 1;
@@ -410,11 +410,12 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
         if (last_exit_year > exit_year || (last_exit_year == exit_year && last_exit_month > exit_month) ||
             (last_exit_year == exit_year && last_exit_month == exit_month && last_exit_day > exit_day)) {
                 return 1;
+        } else if (last_exit_year == exit_year && last_exit_month == exit_month && last_exit_day == exit_day) {
+            if (last_exit_hour >= exit_hour && last_exit_minute >= exit_minute) {
+                return 1;
+            }
         }
 
-        if (last_exit_hour >= exit_hour && last_exit_minute >= exit_minute) {
-            return 1;
-        }
         else if (exit_year < entry_year || (exit_year == entry_year && exit_month < entry_month) ||
                 (exit_year == entry_year && exit_month == entry_month && exit_day < entry_day)) {
             return 1;
