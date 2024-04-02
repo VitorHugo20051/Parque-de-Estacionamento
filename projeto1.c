@@ -327,10 +327,42 @@ char *get_last_exit_time(const Parking *park) {
     return last_exit_time;
 }
 
+char *get_last_entry_date(const Parking *park) {
+    char *last_entry_date = NULL;
+
+    if (park->num_records > 0) {
+        for (int i = park->num_records - 1; i >= 0; i--) {
+            if (park->records[i].entry_date[0] != '\0') {
+                last_entry_date = park->records[i].entry_date;
+                break;
+            }
+        }
+    }
+
+    return last_entry_date;
+}
+
+char *get_last_exit_date(const Parking *park) {
+    char *last_exit_date = NULL;
+
+    if (park->num_records > 0) {
+        for (int i = park->num_records - 1; i >= 0; i--) {
+            if (park->records[i].entry_date[0] != '\0') {
+                last_exit_time = park->records[i].exit_date;
+                break;
+            }
+        }
+    }
+
+    return last_exit_date;
+}
+
 int is_exit_before_entry(const Parking *park, const char *entry_date, const char *entry_time, const char *exit_date, const char *exit_time) {
     int entry_hour, entry_minute, exit_hour, exit_minute;
     int entry_day, entry_month, entry_year, exit_day, exit_month, exit_year;
     int last_entry_hour, last_exit_hour, last_entry_minute, last_exit_minute;
+    int last_exit_date, last_entry_date;
+    int last_entry_day, last_entry_month, last_entry_year, last_exit_day, last_exit_month, last_exit_year;
 
     sscanf(entry_date, "%d-%d-%d", &entry_day, &entry_month, &entry_year);
     sscanf(exit_date, "%d-%d-%d", &exit_day, &exit_month, &exit_year);
@@ -339,9 +371,18 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
 
     char *last_entry_time = get_last_entry_time(park);
     char *last_exit_time = get_last_exit_time(park);
+    char *last_entry_date = get_last_entry_date(park);
+    char *last_exit_date = get_last_exit_date(park);
 
     if (last_entry_time != NULL && last_exit_time == NULL) {
         sscanf(last_entry_time, "%d:%d", &last_entry_hour, &last_entry_minute);
+        sscanf(last_entry_date, "%d-%d-%d", &last_entry_day, &last_entry_month, &last_entry_year);
+
+        if (last_entry_year > exit_year || (last_entry_year == exit_year && last_entry_month > exit_month) ||
+            (last_entry_year == exit_year && last_entry_month == exit_month && last_entry_day > exit_day)) {
+                return 1;
+        }
+
         if (last_entry_hour >= exit_hour && last_entry_minute >= exit_minute) {
             return 1;
         }
@@ -359,6 +400,13 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
         }
     } else if (last_exit_time != NULL && last_entry_time == NULL) {
         sscanf(last_exit_time, "%d:%d", &last_exit_hour, &last_exit_minute);
+        sscanf(last_exit_date, "%d-%d-%d", &last_exit_day, &last_exit_month, &last_exit_year);
+
+        if (last_exit_year > exit_year || (last_exit_year == exit_year && last_exit_month > exit_month) ||
+            (last_exit_year == exit_year && last_exit_month == exit_month && last_exit_day > exit_day)) {
+                return 1;
+        }
+
         if (last_exit_hour >= exit_hour && last_exit_minute >= exit_minute) {
             return 1;
         }
