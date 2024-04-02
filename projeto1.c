@@ -377,6 +377,18 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
     char *last_entry_date = get_last_entry_date(park);
     char *last_exit_date = get_last_exit_date(park);
 
+    if (exit_year < entry_year || (exit_year == entry_year && exit_month < entry_month) ||
+        (exit_year == entry_year && exit_month == entry_month && exit_day < entry_day)) {
+        return 1;
+    } else if (exit_year == entry_year && exit_month == entry_month && exit_day == entry_day) {
+        if (entry_hour == exit_hour) {
+            return exit_minute < entry_minute;
+        }
+        else {
+            return exit_hour < entry_hour;
+        }
+    }
+
     // Compare exit with last entry if available, or last exit if available
     if (last_entry_time != NULL && last_exit_time == NULL) {
         sscanf(last_entry_time, "%d:%d", &last_entry_hour, &last_entry_minute);
@@ -388,19 +400,6 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
         } else if (last_entry_year == exit_year && last_entry_month == exit_month && last_entry_day == exit_day) {
             if (last_entry_hour >= exit_hour && last_entry_minute >= exit_minute) {
                 return 1;
-            }
-        }
-
-        else if (exit_year < entry_year || (exit_year == entry_year && exit_month < entry_month) ||
-                (exit_year == entry_year && exit_month == entry_month && exit_day < entry_day)) {
-            return 1;
-        }
-        else if (exit_year == entry_year && exit_month == entry_month && exit_day == entry_day) {
-            if (entry_hour == exit_hour) {
-                return exit_minute < entry_minute;
-            }
-            else {
-                return exit_hour < entry_hour;
             }
         }
     } else if (last_exit_time != NULL && last_entry_time == NULL) {
@@ -415,22 +414,9 @@ int is_exit_before_entry(const Parking *park, const char *entry_date, const char
                 return 1;
             }
         }
-
-        else if (exit_year < entry_year || (exit_year == entry_year && exit_month < entry_month) ||
-                (exit_year == entry_year && exit_month == entry_month && exit_day < entry_day)) {
-            return 1;
-        }
-        else if (exit_year == entry_year && exit_month == entry_month && exit_day == entry_day) {
-            if (entry_hour == exit_hour) {
-                return exit_minute < entry_minute;
-            }
-            else {
-                return exit_hour < entry_hour;
-            }
-        }
-    }
     
-    return 0;
+        return 0;
+    }
 }
 
 float calculate_bill(Parking *park, int total_minutes, VeichleRecord *record, float costX, float costY, float costZ) {
